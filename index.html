@@ -188,9 +188,9 @@
     let dx = 0, dy = 0, score = 0, gameOver = false, currentQuestion = {};
     let gameLoopInterval = null;
 
-    // フィボナッチ連続出題用
-    let fibSequence = [1, 1];
-    let fibIndex = 1;
+    // ★ フィボナッチ用変数
+    let fibPrev = 1;
+    let fibCurr = 1;
 
     function selectDifficulty(mode) {
         difficulty = mode;
@@ -382,20 +382,23 @@
         }, { passive: false });
     }
 
-    // ★ フィボナッチ問題生成（1 → 1 → 2 → 3 → 5 → 8 ...）
+    // ★ フィボナッチ問題生成（完全版）
     function generateQuestion() {
-    if (score === 0) {
-        currentValue = 1;
-        addValue = 1;
-    } else {
-        addValue++;
-        currentValue = currentValue + addValue;
-    }
 
-    currentQuestion = { result: currentValue };
-    document.getElementById('question').textContent =
-        `問題: 前の数に ${addValue} を足すと？`;
-}
+        if (score === 0) {
+            fibPrev = 1;
+            fibCurr = 1;
+        } else {
+            const next = fibPrev + fibCurr;
+            fibPrev = fibCurr;
+            fibCurr = next;
+        }
+
+        currentQuestion = { result: fibCurr };
+
+        document.getElementById('question').textContent =
+            `問題: 次のフィボナッチ数は？`;
+    }
 
 
     function generateFoods() {
@@ -586,8 +589,10 @@
         dx = dy = 0;
         score = 0;
         gameOver = false;
-        fibSequence = [1, 1];
-        fibIndex = 1;
+
+        // ★ フィボナッチ初期化
+        fibPrev = 1;
+        fibCurr = 1;
 
         document.getElementById('score').textContent = 'スコア: 0';
         document.getElementById('game-over').style.display = 'none';
@@ -596,9 +601,6 @@
         moveEnemies();
         
         gameLoopInterval = setInterval(gameLoop, gameSpeed);
-        currentValue = 1;
-        addValue = 1;
-
     }
 
     resizeCanvas();

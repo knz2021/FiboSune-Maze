@@ -1,95 +1,138 @@
-Fibo-Snake Maze
+# Fibo-Snake Maze
 
-A browser-based educational maze game combining Snake, Fibonacci-style arithmetic, and enemy chasers.
-Play directly in any modern web browser.
+Fibo-Snake Maze is a maze-based snake game where the player must navigate through a randomly generated maze, avoid enemy snakes, and solve Fibonacci number quizzes to score points.  
+When you eat the correct answer, you move on to the next Fibonacci number.
 
-🎮 Game Overview
+This game combines:
+- Classic snake movement  
+- Randomly generated mazes  
+- Multiple enemy snakes with independent AI movement  
+- Fibonacci sequence quiz (1 → 1 → 2 → 3 → 5 → 8 → ...)  
+- Ranking system with local score saving  
 
-Fibo-Snake Maze is a maze-based snake game where the player must solve incrementing arithmetic questions while avoiding enemies.
-Each correct answer appears as food inside the maze, along with several incorrect choices. Eating the correct food increases your score and generates the next question.
+---
 
-The maze, enemies, and food positions are randomized every game.
+## 🎮 How to Play
 
-✨ Features
+### Move the Snake
+- **Arrow Keys** on PC  
+- **Swipe gestures** on mobile devices
 
-Three difficulty modes: Easy, Normal, Hard
+Avoid:
+- Walls  
+- Enemy snakes  
+- Incorrect numbers
 
-Auto-generated mazes with dynamic pathways
+Eat the **correct number tile** to advance to the next Fibonacci number and increase your score.
 
-Arithmetic sequence puzzle (1 → 1 → 2 → 3 → 5 → 8 → … style progression)
+---
 
-Three independent enemy snakes with different movement speeds
+## 🧠 Fibonacci Quiz
 
-Touch and keyboard controls
+Every time you eat the correct tile:
 
-Local ranking system (scores saved per difficulty)
+| Step | Fibonacci Number |
+|------|------------------|
+| 1 | 1 |
+| 2 | 1 |
+| 3 | 2 |
+| 4 | 3 |
+| 5 | 5 |
+| 6 | 8 |
+| ... | ... |
 
-Responsive design (works on mobile and desktop)
+The next number is always  
+**F(n) = F(n−1) + F(n−2)**
 
-🧠 How the Question System Works
+Four incorrect numbers appear randomly as traps.
 
-The game uses a simplified Fibonacci-like rule:
+---
 
-First question starts with:
+## 📊 Difficulty Levels
 
-Current value = 1
+You can choose from three difficulty settings:
 
-Add value = 1
+### **Easy**
+- Slow enemy snakes  
+- Lower score multiplier  
 
-Each time you answer correctly:
+### **Normal**
+- Standard game balance  
+- Normal maze complexity  
 
-Add value increases by +1
+### **Hard**
+- Fast enemy snakes  
+- Higher maze complexity  
+- Double score multiplier  
 
-Next result = current value + add value
+---
 
-Example progression:
-1 → 1 → 2 → 3 → 5 → 8 → 13 …
+## 🏁 Game Over
 
-Your goal is to eat the pink tile with the correct number.
+You lose the game if:
+- You hit a wall  
+- You collide with an enemy snake  
+- You eat a wrong number tile  
 
-🕹️ Controls
-Keyboard
+After the game, you can:
+- Enter your nickname  
+- Save your score locally  
+- View rankings for each difficulty  
 
-Arrow Keys: Move the snake
+Rankings are stored in `localStorage` and saved on the same device/browser.
 
-Touch (Mobile)
+---
 
-Swipe in any direction to move
+## 🧱 Maze Generation
 
-⚠️ Game Over Conditions
+Each playthrough creates a different maze using a depth-first search (DFS) algorithm with:
+- Carved paths  
+- Additional random openings  
+- Clearing around cluster areas for playability  
 
-You lose if:
+This ensures unique gameplay every time.
 
-You eat the wrong number
+---
 
-You collide with a wall
+## 🐍 Enemy Snakes (AI)
 
-You hit an enemy snake
+Three enemy snakes patrol the maze.  
+Each one has:
+- Its own speed depending on difficulty  
+- Randomized direction changes  
+- Collision detection with walls  
 
-After game over, you can:
+They act as moving obstacles the player must avoid.
 
-Enter a nickname
+---
 
-Save your score
+## 📱 Mobile Friendly
 
-View rankings
+- Responsive layout  
+- Touch controls  
+- Canvas automatically resizes  
+- Works on smartphones and tablets  
 
-Play again
+---
 
-📁 Files
+## 📦 Technologies Used
 
-This project consists of a single file:
+- **HTML5 Canvas** (game rendering)  
+- **JavaScript (ES6)**  
+- **CSS3**  
+- **LocalStorage** (ranking system)  
 
-index.html — contains all game logic, CSS, and HTML in one page.
+No libraries or frameworks required.
 
-To run it, simply open index.html in any browser.
+---
 
-🚀 How to Play Locally
+## ▶️ Running the Game
 
-Download index.html
+Simply open `index.html` in any modern browser:
 
-Double-click the file to open it in Chrome, Safari, Firefox, etc.
+- Chrome  
+- Safari  
+- Firefox  
+- Edge  
 
-Choose a difficulty and start playing
-
-No server or installation required.
+No server setup needed.
