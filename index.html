@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ククスネ迷路</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #fcfc98;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            padding: 10px;
+        }
+        h1 {
+            color: #1990da;
+            margin: 5px;
+            font-size: clamp(1.2rem, 4vw, 2rem);
+            text-align: center;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 1;
+            margin: 10px auto;
+        }
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #f9e054;
+            background-color: #f5deb3;
+        }
+        #score {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: #197fec;
+            margin: 5px;
+            text-align: center;
+        }
+        #question {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: #0b7bea;
+            margin: 10px;
+            padding: 5px;
+            background-color: #f3d448;
+            border-radius: 5px;
+            text-align: center;
+        }
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #49a3db;
+            background-color: rgba(250, 223, 223, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        button {
+            padding: 8px 15px;
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            background-color: #a2dcc9;
+            color: rgb(50, 152, 248);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #f3d448;
+        }
+        #difficulty-selection {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 5px 0;
+            font-size: clamp(0.7rem, 2vw, 0.9rem);
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 2px;
+            border: 1px solid #333;
+        }
+        .rankings-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .ranking-table {
+            border-collapse: collapse;
+            min-width: 150px;
+            font-size: 0.9rem;
+        }
+        .ranking-table th, .ranking-table td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: center;
+        }
+        .ranking-table th {
+            background-color: #f3d448;
+            color: #0b7bea;
+        }
+        #nickname-input {
+            border: 2px solid #f3d448;
+            border-radius: 5px;
+            font-size: 16px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ククスネ迷路</h1>
+    <div id="difficulty-selection">
+        <button onclick="selectDifficulty('easy')">イージー</button>
+        <button onclick="selectDifficulty('normal')">ノーマル</button>
+        <button onclick="selectDifficulty('hard')">ハード</button>
+    </div>
+    
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #66cdaa;"></div>
+            <span>プレイヤー</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #8b4513;"></div>
+            <span>壁</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: hotpink;"></div>
+            <span>答え</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #ff4444;"></div>
+            <span>敵1</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #ff8800;"></div>
+            <span>敵2</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #cc44ff;"></div>
+            <span>敵3</span>
+        </div>
+    </div>
+    <div id="score">スコア: 0</div>
+    <div id="question">問題: </div> 
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="game-over"></div>
+    </div>
+    
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let gridSize, tileCount, difficulty, gameSpeed, scoreMultiplier, mazeComplexity;
+    let maze = [], snake = [], foods = [], enemySnakes = [];
+    let dx = 0, dy = 0, score = 0, gameOver = false, currentQuestion = {};
+    let gameLoopInterval = null;
+
+    // フィボナッチ連続出題用
+    let fibSequence = [1, 1];
+    let fibIndex = 1;
+
+    function selectDifficulty(mode) {
+        difficulty = mode;
+        const settings = {
+            easy: { speed: 300, complexity: 0.4, mult: 0.5, enemySpeeds: [900, 1000, 1100] },
+            normal: { speed: 200, complexity: 0.5, mult: 1, enemySpeeds: [600, 800, 700] },
+            hard: { speed: 150, complexity: 0.6, mult: 2, enemySpeeds: [400, 500, 450] }
+        };
+        const s = settings[mode];
+        gameSpeed = s.speed;
+        mazeComplexity = s.complexity;
+        scoreMultiplier = s.mult;
+        enemySnakes = s.enemySpeeds.map((spd, i) => ({
+            body: [], dx: 0, dy: 0, speed: spd, 
+            color: ['#ff4444', '#ff8800', '#cc44ff'][i], lastMove: 0
+        }));
+        document.getElementById('difficulty-selection').style.display = 'none';
+        setTimeout(restartGame, 100);
+    }
+
+    function resizeCanvas() {
+        const container = document.getElementById('game-container');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        gridSize = Math.floor(canvas.width / 25);
+        tileCount = Math.floor(canvas.width / gridSize);
+    }
+
+    function generateMaze() {
+        maze = Array(tileCount).fill().map(() => Array(tileCount).fill(1));
+        
+        for(let i = 0; i < tileCount; i++) {
+            maze[0][i] = maze[tileCount-1][i] = maze[i][0] = maze[i][tileCount-1] = 1;
+        }
+
+        const cx = Math.floor(tileCount / 2);
+        const cy = Math.floor(tileCount / 2);
+        maze[cx][cy] = 0;
+
+        const stack = [[cx, cy]];
+        const visited = new Set([`${cx},${cy}`]);
+        
+        while(stack.length > 0) {
+            const [x, y] = stack[stack.length - 1];
+            const dirs = [[-2, 0], [2, 0], [0, -2], [0, 2]];
+            const available = [];
+            
+            for(let [dx, dy] of dirs) {
+                const nx = x + dx;
+                const ny = y + dy;
+                const key = `${nx},${ny}`;
+                
+                if(nx > 0 && nx < tileCount - 1 && ny > 0 && ny < tileCount - 1 && !visited.has(key)) {
+                    available.push([nx, ny, dx, dy]);
+                }
+            }
+            
+            if(available.length > 0) {
+                const [nx, ny, dx, dy] = available[Math.floor(Math.random() * available.length)];
+                maze[x + dx/2][y + dy/2] = 0;
+                maze[nx][ny] = 0;
+                
+                visited.add(`${nx},${ny}`);
+                stack.push([nx, ny]);
+            } else {
+                stack.pop();
+            }
+        }
+
+        const extraPaths = Math.floor(tileCount * mazeComplexity * 10);
+        for(let i = 0; i < extraPaths; i++) {
+            const x = Math.floor(Math.random() * (tileCount - 2)) + 1;
+            const y = Math.floor(Math.random() * (tileCount - 2)) + 1;
+            if(maze[x][y] === 1) {
+                const neighbors = [[x-1,y],[x+1,y],[x,y-1],[x,y+1]];
+                const openNeighbors = neighbors.filter(([nx, ny]) =>
+                    nx > 0 && nx < tileCount - 1 && ny > 0 && ny < tileCount - 1 && maze[nx][ny] === 0
+                );
+                if(openNeighbors.length >= 1) {
+                    maze[x][y] = 0;
+                }
+            }
+        }
+
+        for(let i = 0; i < 5; i++) {
+            const rx = Math.floor(Math.random() * (tileCount - 6)) + 3;
+            const ry = Math.floor(Math.random() * (tileCount - 6)) + 3;
+            for(let dx = -1; dx <= 1; dx++) {
+                for(let dy = -1; dy <= 1; dy++) {
+                    const x = rx + dx, y = ry + dy;
+                    if(x > 0 && x < tileCount - 1 && y > 0 && y < tileCount - 1) {
+                        maze[x][y] = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    function isWall(x, y) {
+        return x < 0 || x >= tileCount || y < 0 || y >= tileCount || maze[x][y] === 1;
+    }
+
+    function initEnemySnakes() {
+        enemySnakes.forEach((enemy, idx) => {
+            enemy.body = [];
+            enemy.lastMove = 0;
+            
+            let sx, sy, attempts = 0;
+            do {
+                sx = Math.floor(Math.random() * (tileCount - 10)) + 5;
+                sy = Math.floor(Math.random() * (tileCount - 10)) + 5;
+                attempts++;
+            } while ((isWall(sx, sy) || Math.abs(sx - snake[0].x) < 8 || Math.abs(sy - snake[0].y) < 8) && attempts < 50);
+
+            const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+            const [dirX, dirY] = dirs[idx % 4];
+
+            for(let i = 0; i < 3; i++) {
+                enemy.body.push({ x: sx, y: sy });
+            }
+            enemy.dx = dirX;
+            enemy.dy = dirY;
+        });
+    }
+
+    function moveEnemies() {
+        if(gameOver) return;
+        
+        enemySnakes.forEach(enemy => {
+            const now = Date.now();
+            if(now - enemy.lastMove < enemy.speed) return;
+            enemy.lastMove = now;
+            
+            const nextX = enemy.body[0].x + enemy.dx;
+            const nextY = enemy.body[0].y + enemy.dy;
+            
+            if(isWall(nextX, nextY) || Math.random() < 0.2) {
+                const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+                const validDirs = dirs.filter(([dx, dy]) => !isWall(enemy.body[0].x + dx, enemy.body[0].y + dy));
+                if(validDirs.length > 0) {
+                    [enemy.dx, enemy.dy] = validDirs[Math.floor(Math.random() * validDirs.length)];
+                }
+            }
+
+            const head = { x: enemy.body[0].x + enemy.dx, y: enemy.body[0].y + enemy.dy };
+            if(!isWall(head.x, head.y)) {
+                enemy.body.unshift(head);
+                enemy.body.pop();
+            }
+        });
+
+        setTimeout(moveEnemies, 50);
+    }
+
+    function setupControls() {
+        const handleDir = (newDx, newDy) => {
+            if(gameOver) return;
+            if(dx === -newDx && dy === -newDy && snake.length > 1) return;
+            dx = newDx;
+            dy = newDy;
+        };
+
+        document.addEventListener('keydown', e => { 
+            if(e.key === 'ArrowLeft') { e.preventDefault(); handleDir(-1, 0); }
+            else if(e.key === 'ArrowUp') { e.preventDefault(); handleDir(0, -1); }
+            else if(e.key === 'ArrowRight') { e.preventDefault(); handleDir(1, 0); }
+            else if(e.key === 'ArrowDown') { e.preventDefault(); handleDir(0, 1); }
+        });
+
+        let touchStartX = 0, touchStartY = 0;
+        canvas.addEventListener('touchstart', e => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            e.preventDefault();
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+            
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                handleDir(diffX > 0 ? 1 : -1, 0);
+            } else {
+                handleDir(0, diffY > 0 ? 1 : -1);
+            }
+            e.preventDefault();
+        }, { passive: false });
+    }
+
+    // ★ フィボナッチ問題生成（1 → 1 → 2 → 3 → 5 → 8 ...）
+    function generateQuestion() {
+    if (score === 0) {
+        currentValue = 1;
+        addValue = 1;
+    } else {
+        addValue++;
+        currentValue = currentValue + addValue;
+    }
+
+    currentQuestion = { result: currentValue };
+    document.getElementById('question').textContent =
+        `問題: 前の数に ${addValue} を足すと？`;
+}
+
+
+    function generateFoods() {
+        foods = [];
+        const available = [];
+
+        for(let x = 1; x < tileCount - 1; x++) {
+            for(let y = 1; y < tileCount - 1; y++) {
+                if(!isWall(x, y) && !snake.some(s => s.x === x && s.y === y) &&
+                   !enemySnakes.some(e => e.body.some(b => b.x === x && b.y === y))) {
+                    available.push({x, y});
+                }
+            }
+        }
+
+        if(available.length < 5) {
+            setGameOver("迷路が複雑すぎます！");
+            return;
+        }
+
+        const correctPos = available[Math.floor(Math.random() * available.length)];
+        foods.push({ ...correctPos, value: currentQuestion.result, isCorrect: true });
+
+        const used = new Set([`${correctPos.x},${correctPos.y}`]);
+        for (let i = 0; i < 4; i++) {
+            let attempts = 0;
+            while(attempts++ < 50) {
+                const pos = available[Math.floor(Math.random() * available.length)];
+                const key = `${pos.x},${pos.y}`;
+                if(!used.has(key)) {
+                    const diff = Math.floor(Math.random() * 11) - 5;
+                    const val = currentQuestion.result + diff;
+                    if(val > 0 && val !== currentQuestion.result && !foods.some(f => f.value === val)) {
+                        foods.push({ ...pos, value: val, isCorrect: false });
+                        used.add(key);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    function setGameOver(reason) {
+        gameOver = true;
+        if(gameLoopInterval) {
+            clearInterval(gameLoopInterval);
+            gameLoopInterval = null;
+        }
+        
+        const gameOverDiv = document.getElementById('game-over');
+        gameOverDiv.innerHTML = `
+            <h2>ゲームオーバー!</h2>
+            <p>最終スコア: ${score}</p>
+            <p>${reason}</p>
+            <div style="margin: 15px 0;">
+                <input type="text" id="nickname-input" placeholder="ニックネーム" maxlength="10"
+                       value="${localStorage.getItem('lastNickname') || ''}" style="padding: 5px;">
+                <button onclick="submitScore()">スコアを登録</button>
+            </div>
+        `;
+        gameOverDiv.style.display = 'block';
+        document.getElementById('difficulty-selection').style.display = 'flex';
+        setTimeout(() => {
+            const input = document.getElementById('nickname-input');
+            if(input) { input.focus(); input.select(); }
+        }, 100);
+    }
+
+    function submitScore() {
+        const nickname = document.getElementById('nickname-input').value.trim() || '名無し';
+        localStorage.setItem('lastNickname', nickname);
+        
+        const rankings = JSON.parse(localStorage.getItem('mazeSnakeRankings') || '{}');
+        if (!rankings[difficulty]) rankings[difficulty] = [];
+        rankings[difficulty].push({ score, nickname, date: new Date().toLocaleString() });
+        rankings[difficulty].sort((a, b) => b.score - a.score);
+        rankings[difficulty] = rankings[difficulty].slice(0, 5);
+        localStorage.setItem('mazeSnakeRankings', JSON.stringify(rankings));
+        
+        displayRanking();
+        
+        if (!document.querySelector('#game-over button[onclick="restartGame()"]')) {
+            const btn = document.createElement('button');
+            btn.onclick = restartGame;
+            btn.textContent = '再プレイ';
+            document.getElementById('game-over').appendChild(btn);
+        }
+    }
+
+    function displayRanking() {
+        const rankings = JSON.parse(localStorage.getItem('mazeSnakeRankings') || '{}');
+        const labels = { easy: 'イージー', normal: 'ノーマル', hard: 'ハード' };
+        
+        let html = '<div class="rankings-container">';
+        ['easy', 'normal', 'hard'].forEach(diff => {
+            const ranks = rankings[diff] || [];
+            html += `<div><h4>${labels[diff]}</h4><table class="ranking-table">
+                <tr><th>順位</th><th>名前</th><th>スコア</th></tr>
+                ${ranks.map((r, i) => `<tr><td>${i+1}</td><td>${r.nickname}</td><td>${r.score}</td></tr>`).join('')}
+            </table></div>`;
+        });
+        html += '</div>';
+        
+        const gameOverDiv = document.getElementById('game-over');
+        gameOverDiv.querySelector('.rankings-container')?.remove();
+        gameOverDiv.insertAdjacentHTML('beforeend', html);
+    }
+
+    function gameLoop() {
+        if(gameOver) return;
+        
+        if(dx !== 0 || dy !== 0) {
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+            if(!isWall(head.x, head.y)) {
+                snake.unshift(head);
+
+                let ateFood = false;
+                for (let food of foods) {
+                    if (head.x === food.x && head.y === food.y) {
+                        if (food.isCorrect) {
+                            score += Math.round(10 * scoreMultiplier);
+                            ateFood = true;
+                            document.getElementById('score').textContent = `スコア: ${score}`;
+                            generateQuestion();
+                            generateFoods();
+                        } else {
+                            setGameOver(`不正解！正解は ${currentQuestion.result}`);
+                            return;
+                        }
+                        break;
+                    }
+                }
+
+                if(!ateFood) snake.pop();
+
+                for(let enemy of enemySnakes) {
+                    for(let seg of enemy.body) {
+                        if(head.x === seg.x && head.y === seg.y) {
+                            setGameOver("敵蛇にぶつかりました！");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        
+        ctx.fillStyle = '#f5deb3';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#8b4513';
+        for(let x = 0; x < tileCount; x++) {
+            for(let y = 0; y < tileCount; y++) {
+                if(maze[x]?.[y] === 1) {
+                    ctx.fillRect(x * gridSize, y * gridSize, gridSize - 1, gridSize - 1);
+                }
+            }
+        }
+        
+        ctx.fillStyle = '#66cdaa';
+        snake.forEach(s => ctx.fillRect(s.x * gridSize, s.y * gridSize, gridSize - 2, gridSize - 2));
+        
+        enemySnakes.forEach(enemy => {
+            ctx.fillStyle = enemy.color;
+            enemy.body.forEach(s => ctx.fillRect(s.x * gridSize, s.y * gridSize, gridSize - 2, gridSize - 2));
+        });
+        
+        foods.forEach(food => {
+            ctx.fillStyle = 'hotpink';
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+            ctx.fillStyle = 'white';
+            ctx.font = `${gridSize * 0.6}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(food.value, food.x * gridSize + gridSize/2, food.y * gridSize + gridSize/2);
+        });
+    }
+
+    function restartGame() {
+        if(gameLoopInterval) {
+            clearInterval(gameLoopInterval);
+        }
+        
+        resizeCanvas();
+        generateMaze();
+        snake = [{ x: Math.floor(tileCount/2), y: Math.floor(tileCount/2) }];
+        initEnemySnakes();
+        dx = dy = 0;
+        score = 0;
+        gameOver = false;
+        fibSequence = [1, 1];
+        fibIndex = 1;
+
+        document.getElementById('score').textContent = 'スコア: 0';
+        document.getElementById('game-over').style.display = 'none';
+        generateQuestion();
+        generateFoods();
+        moveEnemies();
+        
+        gameLoopInterval = setInterval(gameLoop, gameSpeed);
+        currentValue = 1;
+        addValue = 1;
+
+    }
+
+    resizeCanvas();
+    setupControls();
+    window.addEventListener('resize', () => {
+        resizeCanvas();
+    });
+</script>
+</body>
+</html>
